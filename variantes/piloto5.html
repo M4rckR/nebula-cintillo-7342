@@ -1,0 +1,274 @@
+<script>
+    (() => {
+        const CONFIG = {
+            id: 'P5',
+            tematica: 'Flexibilidad en cuotas',
+            // Emojis como entidades HTML para que no se corrompan al pegar el snippet en Target.
+            texto: '&#x1F525; ¡Compra con Cuotas Sin Intereses! Pide tu Tarjeta de Crédito BCP &#x1F448;',
+            href: 'https://www.mitarjetabcp.viabcp.com/?pcid=viabcp:home:pide-tu-tarjeta:masivo:cintillo-p5-cuotas'
+        };
+
+        // Código del experimento (mismo valor en control y pilotos).
+        const CODIGO_EXPERIMENTO = 'TC0098';
+        const NOMBRE_PROMOCION = 'Header - ViaBCP - ' + CODIGO_EXPERIMENTO + ' - ' + CONFIG.id;
+        // Copy para el tageo: el texto sin los emojis (entidades HTML).
+        const COPY_TAGEO = CONFIG.texto.replace(/&#x[0-9a-f]+;/gi, '').trim();
+
+        // Sin template literals (comillas invertidas) en este archivo: Target vacía sus interpolaciones al entregar la oferta.
+        // Por eso las clases van escritas tal cual en el CSS y el HTML, y href/texto se asignan por DOM.
+        const STYLE_ID = 'cintillo-autotarget-estilos';
+        const CLASE_CINTILLO = 'cintillo-at';
+        const CLASE_CAJA_ACTIVA = 'cintillo-at-activo';
+        const COOKIE_OCULTAR = 'bcp_cintillo_promocion_ocultar';
+        const MAX_RERENDERS = 5;
+        const TIMEOUT_ESPERA = 10000;
+
+        // Copia de la lista negra del cintillo genérico: el sitio elimina el span en esas rutas.
+        const LISTA_NEGRA = [
+            '/prestamo-online',
+            '/creditos/credito-efectivo/prestamo-personal-bcp',
+            '/adelanto-de-sueldo',
+            '/creditos/otros-creditos/adelanto-de-sueldo',
+            '/login-wifi/agencias',
+            '/ayuda-pagos',
+            '/canales-presenciales',
+            '/canales/banca-por-internet',
+            '/canales/banca-movil',
+            '/canales/preguntale-a-clara',
+            '/canales/yape',
+            '/sorteos-y-campanas-ahorros',
+            '/ruleta-cuy-bcp',
+            '/campana-retos',
+            '/beneficios-meta-ahorro-bcp'
+        ];
+
+        let cerrado = false;
+        let rerenders = 0;
+        let vistaEnviada = false;
+
+        function leerCookie(nombre) {
+            return document.cookie.split(';').some(c => c.trim().startsWith(nombre + '='));
+        }
+
+        function normalizarRuta(ruta) {
+            return ruta.trim().toLowerCase().replace(/\/+$/, '');
+        }
+
+        function estaEnListaNegra(caja) {
+            const rutas = LISTA_NEGRA.slice();
+            const spanListaNegra = caja.querySelector('.listaNegraCintilloGenerico');
+
+            if (spanListaNegra) {
+                spanListaNegra.textContent.split('\n').forEach(linea => {
+                    if (linea.trim()) rutas.push(linea);
+                });
+            }
+
+            const rutaActual = normalizarRuta(window.location.pathname);
+            const urlActual = normalizarRuta(window.location.href);
+            return rutas.some(ruta => {
+                const r = normalizarRuta(ruta);
+                return r && (r === rutaActual || r === urlActual);
+            });
+        }
+
+        // Esquema de tageo del equipo (mismo name/creative/position en vista y clic):
+        // promotion.name = 'Header - ViaBCP - <código> - P1', creative = 'Cintillo', position = copy mostrado.
+        function enviarTageoPromocion(evento) {
+            if (!window.digitalData || typeof window.digitalData.push !== 'function') {
+                window.digitalData = [];
+            }
+
+            window.digitalData.push({
+                promotion: {
+                    name: NOMBRE_PROMOCION,
+                    creative: 'Cintillo',
+                    position: COPY_TAGEO
+                },
+                event: evento
+            });
+        }
+
+        // Una sola vista por página, aunque el cintillo se vuelva a pintar.
+        function registrarVista(elemento) {
+            if (vistaEnviada) return;
+
+            const enviarVista = () => {
+                if (vistaEnviada) return;
+                vistaEnviada = true;
+                enviarTageoPromocion('trackPromotionView');
+            };
+
+            if (!('IntersectionObserver' in window)) {
+                enviarVista();
+                return;
+            }
+
+            const observer = new IntersectionObserver(entradas => {
+                if (entradas.some(entrada => entrada.isIntersecting && entrada.intersectionRatio >= 0.5)) {
+                    observer.disconnect();
+                    enviarVista();
+                }
+            }, { threshold: [0.5] });
+            observer.observe(elemento);
+        }
+
+        function inyectarEstilos() {
+            if (document.getElementById(STYLE_ID)) return;
+
+            const style = document.createElement('style');
+            style.id = STYLE_ID;
+            style.textContent = [
+                '.bcp_cintillo.cintillo-at-activo > :not(.cintillo-at) {',
+                '    display: none !important;',
+                '}',
+                '',
+                '.cintillo-at {',
+                '    position: relative;',
+                '    box-sizing: border-box;',
+                '    height: 56px;',
+                '    background: linear-gradient(89deg, #0030B3 35.42%, #D3017F 100%);',
+                '}',
+                '',
+                '.cintillo-at a {',
+                '    display: flex;',
+                '    align-items: center;',
+                '    justify-content: center;',
+                '    gap: 8px;',
+                '    box-sizing: border-box;',
+                '    height: 100%;',
+                '    padding: 8px 42px;',
+                '    text-decoration: none;',
+                '    font-family: \'Flexo-demi\', sans-serif;',
+                '    font-weight: normal;',
+                '    font-size: 16px;',
+                '    line-height: 20px;',
+                '    color: #FFFFFF;',
+                '    text-align: center;',
+                '}',
+                '',
+                '.cintillo-at a:hover,',
+                '.cintillo-at a:focus {',
+                '    color: #FFFFFF;',
+                '    text-decoration: none;',
+                '}',
+                '',
+                '.cintillo-at .cintillo-at-flecha {',
+                '    flex: none;',
+                '    width: 16px;',
+                '    height: 16px;',
+                '}',
+                '',
+                '.cintillo-at .cintillo-at-cerrar {',
+                '    position: absolute;',
+                '    top: 50%;',
+                '    right: 8px;',
+                '    transform: translateY(-50%);',
+                '    display: flex;',
+                '    padding: 0;',
+                '    margin: 0;',
+                '    background: none;',
+                '    border: 0;',
+                '    cursor: pointer;',
+                '}',
+                '',
+                '@media (min-width: 992px) {',
+                '    .cintillo-at {',
+                '        height: 48px;',
+                '        background: linear-gradient(90deg, #0030B3 53.1%, #D3017F 95.3%, #FC4439 100%);',
+                '    }',
+                '',
+                '    .cintillo-at a {',
+                '        padding: 14px 60px;',
+                '    }',
+                '',
+                '    .cintillo-at .cintillo-at-cerrar {',
+                '        right: 20px;',
+                '    }',
+                '}'
+            ].join('\n');
+            document.head.appendChild(style);
+        }
+
+        function crearCintillo() {
+            const cintillo = document.createElement('div');
+            cintillo.className = CLASE_CINTILLO;
+            cintillo.setAttribute('data-variante', CONFIG.id);
+            cintillo.innerHTML = [
+                '<a target="_blank">',
+                '    <span></span>',
+                '    <svg class="cintillo-at-flecha" aria-hidden="true" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">',
+                '        <path fill-rule="evenodd" clip-rule="evenodd" d="M2.667 7.335h9.056L9.526 5.138a.667.667 0 0 1 .943-.943l3.333 3.334a.667.667 0 0 1 0 .942l-3.33 3.334a.667.667 0 0 1-.943-.943l2.192-2.194H2.667a.667.667 0 0 1 0-1.333Z" fill="white"/>',
+                '    </svg>',
+                '</a>',
+                '<button type="button" class="cintillo-at-cerrar" aria-label="Cerrar promoción">',
+                '    <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">',
+                '        <path d="M6.707 5.293 12 10.585l5.293-5.292a1 1 0 1 1 1.414 1.414L13.415 12l5.292 5.293a1 1 0 0 1-1.414 1.414L12 13.415l-5.293 5.292a1 1 0 0 1-1.414-1.414L10.585 12 5.293 6.707a1 1 0 0 1 1.414-1.414Z" fill="white"/>',
+                '    </svg>',
+                '</button>'
+            ].join('\n');
+
+            cintillo.querySelector('a').href = CONFIG.href;
+            cintillo.querySelector('span').innerHTML = CONFIG.texto;
+
+            cintillo.querySelector('a').addEventListener('click', () => enviarTageoPromocion('trackPromotionClick'));
+            cintillo.querySelector('button').addEventListener('click', () => cerrar(cintillo));
+            return cintillo;
+        }
+
+        function cerrar(cintillo) {
+            // La caja conserva CLASE_CAJA_ACTIVA para que el cintillo genérico no reaparezca debajo.
+            cerrado = true;
+            cintillo.remove();
+            document.cookie = COOKIE_OCULTAR + '=true; path=/; max-age=86400';
+        }
+
+        function renderizar(caja) {
+            if (cerrado || caja.querySelector('.' + CLASE_CINTILLO)) return;
+            caja.classList.add(CLASE_CAJA_ACTIVA);
+            const cintillo = crearCintillo();
+            caja.appendChild(cintillo);
+            registrarVista(cintillo);
+        }
+
+        function iniciar(caja) {
+            if (leerCookie(COOKIE_OCULTAR) || estaEnListaNegra(caja)) return;
+
+            inyectarEstilos();
+            renderizar(caja);
+
+            // Si el mbox del sitio u otro script reescribe la caja, se vuelve a pintar la variante.
+            const observador = new MutationObserver(() => {
+                if (cerrado || rerenders >= MAX_RERENDERS) {
+                    observador.disconnect();
+                    return;
+                }
+                if (!caja.querySelector('.' + CLASE_CINTILLO)) {
+                    rerenders++;
+                    renderizar(caja);
+                }
+            });
+            observador.observe(caja, { childList: true });
+        }
+
+        function esperarCaja() {
+            const caja = document.querySelector('header .bcp_cintillo');
+            if (caja) {
+                iniciar(caja);
+                return;
+            }
+
+            const observador = new MutationObserver(() => {
+                const cajaEncontrada = document.querySelector('header .bcp_cintillo');
+                if (cajaEncontrada) {
+                    observador.disconnect();
+                    iniciar(cajaEncontrada);
+                }
+            });
+            observador.observe(document.documentElement, { childList: true, subtree: true });
+            setTimeout(() => observador.disconnect(), TIMEOUT_ESPERA);
+        }
+
+        esperarCaja();
+    })();
+</script>

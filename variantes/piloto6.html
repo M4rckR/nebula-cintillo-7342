@@ -1,0 +1,152 @@
+<script>
+    (() => {
+        const CONFIG = {
+            id: 'P6',
+            tematica: 'Gradiente animado'
+        };
+
+        const STYLE_ID = 'bcp-cintillo-p6';
+        const ATRIBUTO_INICIADO = 'data-cintillo-p6';
+        const COOKIE_OCULTAR = 'bcp_cintillo_promocion_ocultar';
+        const SELECTOR_CINTILLO = '.bcp_header .bcp_cintillo_campana';
+
+        // Código del experimento: reemplazar cuando se asigne (mismo valor en control y pilotos).
+        const CODIGO_EXPERIMENTO = 'TCXXXX';
+        const NOMBRE_PROMOCION = 'Header - ViaBCP - ' + CODIGO_EXPERIMENTO + ' - ' + CONFIG.id;
+
+        function leerCookie(nombre) {
+            return document.cookie.split(';').some(c => c.trim().startsWith(nombre + '='));
+        }
+
+        // Copy para el tageo: el texto del cintillo del CMS, sin emojis ni espacios de más.
+        function obtenerCopy(enlace) {
+            return enlace.textContent
+                .replace(/\p{Extended_Pictographic}|\uFE0F/gu, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        // Esquema de tageo del equipo (mismo name/creative/position en vista y clic):
+        // promotion.name = 'Header - ViaBCP - <código> - P6', creative = 'Cintillo', position = copy mostrado.
+        function enviarTageoPromocion(evento, enlace) {
+            if (!window.digitalData || typeof window.digitalData.push !== 'function') {
+                window.digitalData = [];
+            }
+
+            window.digitalData.push({
+                promotion: {
+                    name: NOMBRE_PROMOCION,
+                    creative: 'Cintillo',
+                    position: obtenerCopy(enlace)
+                },
+                event: evento
+            });
+        }
+
+        function registrarVista(enlace) {
+            let vistaEnviada = false;
+            const enviarVista = () => {
+                if (vistaEnviada) return;
+                vistaEnviada = true;
+                enviarTageoPromocion('trackPromotionView', enlace);
+            };
+
+            if (!('IntersectionObserver' in window)) {
+                enviarVista();
+                return;
+            }
+
+            const observer = new IntersectionObserver(entradas => {
+                if (entradas.some(entrada => entrada.isIntersecting && entrada.intersectionRatio >= 0.5)) {
+                    observer.disconnect();
+                    enviarVista();
+                }
+            }, { threshold: [0.5] });
+            observer.observe(enlace);
+        }
+
+        function inyectarEstilos() {
+            if (document.getElementById(STYLE_ID)) return;
+
+            const style = document.createElement('style');
+            style.id = STYLE_ID;
+            style.textContent = [
+                '/* El fondo original se mantiene; la animación va en una capa encima. */',
+                '.bcp_header .bcp_cintillo_campana {',
+                '    overflow: hidden;',
+                '}',
+                '',
+                '.bcp_header .bcp_cintillo_campana::before {',
+                '    content: \'\';',
+                '    position: absolute;',
+                '    inset: 0;',
+                '    pointer-events: none;',
+                '    z-index: 0;',
+                '    background-size: 140% 100%;',
+                '    animation: bcpDriftP6 14s ease-in-out infinite;',
+                '}',
+                '',
+                '/* Contenido por encima de la capa. El botón ya es absolute en el sitio:',
+                '   solo se le sube el z-index para no moverlo. */',
+                '.bcp_header .bcp_cintillo_campana > a {',
+                '    position: relative;',
+                '    z-index: 1;',
+                '}',
+                '',
+                '.bcp_header .bcp_cintillo_campana .btn_cerrar_promocion {',
+                '    z-index: 1;',
+                '}',
+                '',
+                '@media (max-width: 991px) {',
+                '    .bcp_header .bcp_cintillo_campana::before {',
+                '        background-image: linear-gradient(89deg, #0030B3 0%, #0030B3 25%, #D3017F 55%, #0030B3 100%);',
+                '    }',
+                '}',
+                '',
+                '@media (min-width: 992px) {',
+                '    .bcp_header .bcp_cintillo_campana::before {',
+                '        background-image: linear-gradient(90deg, #0030B3 0%, #0030B3 30%, #D3017F 60%, #FC4439 75%, #D3017F 88%, #0030B3 100%);',
+                '    }',
+                '}',
+                '',
+                '@keyframes bcpDriftP6 {',
+                '    0%, 100% { background-position: 35% 50%; }',
+                '    50% { background-position: 65% 50%; }',
+                '}',
+                '',
+                '@media (prefers-reduced-motion: reduce) {',
+                '    .bcp_header .bcp_cintillo_campana::before {',
+                '        animation: none;',
+                '    }',
+                '}'
+            ].join('\n');
+            document.head.appendChild(style);
+        }
+
+        function iniciar() {
+            const cintillo = document.querySelector(SELECTOR_CINTILLO);
+
+            // Sin cintillo (lista negra, cerrado o reemplazado por el mbox) o con cookie de cierre: no se hace nada.
+            if (!cintillo || leerCookie(COOKIE_OCULTAR)) return;
+
+            inyectarEstilos();
+
+            // Evita duplicar vista y listeners si el script corre dos veces.
+            if (cintillo.hasAttribute(ATRIBUTO_INICIADO)) return;
+            cintillo.setAttribute(ATRIBUTO_INICIADO, 'true');
+
+            const enlace = cintillo.querySelector('a');
+            if (enlace) {
+                registrarVista(enlace);
+                enlace.addEventListener('click', () => enviarTageoPromocion('trackPromotionClick', enlace));
+            }
+        }
+
+        // El snippet puede llegar antes de que el header esté en el DOM.
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', iniciar);
+        } else {
+            iniciar();
+        }
+    })();
+</script>

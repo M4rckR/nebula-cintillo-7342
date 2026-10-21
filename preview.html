@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Preview cintillo</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;700&display=swap">
+    <!--
+        Réplica ligera del home de viabcp.com para ver el cintillo sin el HTML completo del sitio.
+        Mantiene la estructura que usan los snippets: header > .bcp_cintillo > .bcp_cintillo_campana.
+        Imágenes desde www.viabcp.com; la fuente Flexo se sustituye por Nunito Sans.
+        Ningún link navega: los clics se registran en el panel.
+
+        Uso (los snippets se cargan con fetch, así que necesita servidor):
+            python3 -m http.server 8000
+            http://localhost:8000/preview.html?v=piloto1   (control, piloto1..piloto6)
+    -->
+    <style>
+        /* Flexo (fuente del sitio) no se puede cargar fuera de viabcp.com: se usa Nunito Sans como sustituto. */
+        @font-face { font-family: 'Flexo'; src: local('Flexo'), local('Flexo-Regular'); }
+        @font-face { font-family: 'Flexo-Demi'; src: local('Flexo-Demi'), local('Flexo Demi'); }
+
+        :root {
+            --azul: #002A8D;
+            --azul-bcp: #0030B3;
+            --azul-etiqueta: #0A47F0;
+            --naranja: #FF7800;
+            --texto: #202E44;
+            --gris: #484848;
+            --gris-borde: #ACB2BD;
+            --celeste: #D9EBFD;
+            --celeste-nivel1: #F2F8FF;
+            --contenedor: 1208px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Flexo, 'Nunito Sans', sans-serif;
+            font-size: 14px;
+            color: var(--gris);
+            background: #fff;
+        }
+
+        a { color: inherit; text-decoration: none; }
+        button { font: inherit; }
+
+        .container {
+            width: 100%;
+            max-width: var(--contenedor);
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        .demi { font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700; }
+
+        /* ================= Header ================= */
+        .bcp_header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: #fff;
+            box-shadow: 0 0 28px rgba(175, 193, 223, .3);
+        }
+
+        /* Cintillo genérico: copia del <style> inline del sitio */
+        .bcp_header .bcp_cintillo_campana { position: relative; }
+        .bcp_header .bcp_cintillo_campana button { background-color: unset; border-style: unset; padding: 0; margin: 0; cursor: pointer; }
+        .bcp_header .bcp_cintillo_campana p { margin: 0; padding: 0; }
+
+        .bcp_header .bcp_cintillo_campana .bcp_texto {
+            font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700;
+            color: #fff;
+            font-size: 16px;
+            line-height: 20px;
+            text-align: center;
+        }
+
+        .bcp_header .bcp_cintillo_campana .bcp_texto p::after {
+            content: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M2.667 7.335h9.056L9.526 5.138a.667.667 0 0 1 .943-.943l3.333 3.334a.667.667 0 0 1 0 .942l-3.33 3.334a.667.667 0 0 1-.943-.943l2.192-2.194H2.667a.667.667 0 0 1 0-1.333Z' fill='white'/%3E%3C/svg%3E");
+            margin-top: 2px;
+            margin-left: 4px;
+            position: absolute;
+        }
+
+        .bcp_header .bcp_cintillo_campana .btn_cerrar_promocion { position: absolute; }
+
+        @media (max-width: 991px) {
+            .bcp_header .bcp_cintillo_campana { height: 56px; background: linear-gradient(89deg, #0030B3 35.42%, #D3017F 100%); }
+            .bcp_header .bcp_cintillo_campana a { display: block; padding: 8px 42px; }
+            .bcp_header .bcp_cintillo_campana .btn_cerrar_promocion { margin-top: 12px; right: 8px; top: 0; }
+        }
+
+        @media (min-width: 992px) {
+            .bcp_header .bcp_cintillo_campana { height: 48px; background: linear-gradient(90deg, #0030B3 53.1%, #D3017F 95.3%, #FC4439 100%); }
+            .bcp_header .bcp_cintillo_campana a { display: block; padding: 14px 60px; }
+            .bcp_header .bcp_cintillo_campana .btn_cerrar_promocion { right: 20px; top: 10px; }
+        }
+
+        /* Nivel 1: Personas / PyMES / Empresas */
+        .bcp_nivel1 { background: var(--celeste-nivel1); }
+
+        .bcp_nivel1_desktop {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 32px;
+        }
+
+        .bcp_nivel1 ul { display: flex; gap: 24px; margin: 0; padding: 0; list-style: none; }
+
+        .bcp_tipo_cliente li {
+            height: 32px;
+            display: flex;
+            align-items: center;
+            font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700;
+            font-size: 14px;
+            color: var(--texto);
+        }
+
+        .bcp_tipo_cliente li.activo { border-bottom: 1px solid var(--naranja); }
+        .bcp_traducir { font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700; color: var(--texto); }
+        .bcp_traducir li { gap: 4px; }
+
+        /* Nivel 2: logo, categorías, acciones */
+        .bcp_nivel2 { display: flex; align-items: center; height: 64px; gap: 32px; }
+        .bcp-logo { display: flex; flex: none; }
+
+        .bcp_categorias { display: flex; gap: 24px; margin: 0; padding: 0; list-style: none; }
+
+        .bcp_categorias li {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700;
+            font-size: 15px;
+            color: var(--texto);
+        }
+
+        .acciones { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 40px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .btn-buscar { border: 2px solid #8a3ffc; color: #527094; border-radius: 59px; padding: 0 20px; }
+        .btn-otro { border: 1px solid var(--gris-borde); color: #4D5B70; }
+        .btn-banca { background: var(--naranja); color: #fff; }
+        .btn-banca .corto { display: none; }
+        .icono-boton { display: none; }
+
+        /* < 1280: una sola fila como en el sitio */
+        @media (max-width: 1279px) {
+            .bcp_nivel1 { display: none; }
+            .bcp_categorias, .btn-buscar { display: none; }
+            .btn-banca .largo { display: none; }
+            .btn-banca .corto { display: inline; }
+            .icono-boton { display: inline-flex; color: var(--azul-bcp); }
+            .acciones { gap: 12px; }
+            .btn-otro { color: var(--azul-bcp); }
+        }
+
+        @media (max-width: 359px) {
+            .btn-otro { display: none; }
+        }
+
+        /* ================= Banner ================= */
+        .banner { position: relative; background: var(--celeste); overflow: hidden; }
+
+        .banner .container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            height: 440px;
+        }
+
+        .banner-texto { position: relative; z-index: 1; max-width: 560px; }
+
+        .banner h1 {
+            margin: 0 0 16px;
+            font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700;
+            font-size: 48px;
+            line-height: 56px;
+            color: var(--azul);
+        }
+
+        .banner p { margin: 0 0 32px; font-size: 18px; line-height: 24px; color: var(--azul); }
+
+        .btn-banner {
+            display: inline-flex;
+            height: 48px;
+            padding: 16px 24px;
+            border-radius: 24px;
+            background: var(--naranja);
+            color: #fff;
+            font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700;
+            font-size: 16px;
+            line-height: 16px;
+        }
+
+        .banner-img {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 50%;
+            height: 100%;
+            background: url('https://www.viabcp.com/wcm/connect/df36e4f3-1d35-42a6-b10f-3d0ac594d27a/Vitrina+Home+Vi%CC%81aBCP_Desktop+%283%29.png?MOD=AJPERES') no-repeat 50% 100% / contain;
+        }
+
+        .banner-puntos {
+            position: absolute;
+            left: 50%;
+            bottom: 24px;
+            display: flex;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, .6);
+        }
+
+        .banner-puntos span { width: 8px; height: 8px; border-radius: 50%; background: #9aa9c3; }
+        .banner-puntos span:nth-child(2) { width: 20px; border-radius: 4px; background: var(--azul-bcp); }
+
+        @media (max-width: 767px) {
+            .banner .container { flex-direction: column; align-items: flex-start; height: auto; padding-top: 32px; }
+            .banner h1 { font-size: 32px; line-height: 40px; }
+            .banner p { font-size: 16px; margin-bottom: 24px; }
+            .banner-img {
+                position: relative;
+                width: 100%;
+                height: 260px;
+                background-image: url('https://www.viabcp.com/wcm/connect/fda46e64-aae0-496d-a1a5-d9eeb3b50e16/Vitrina+Home+Vi%CC%81aBCP_Mobile+%283%29.png?MOD=AJPERES');
+            }
+            .banner-puntos { left: 16px; bottom: 16px; }
+        }
+
+        /* ================= ¿Qué necesitas hacer hoy? ================= */
+        .tienda .container {
+            display: grid;
+            grid-template-columns: 1fr 520px;
+            gap: 64px;
+            padding-top: 56px;
+            padding-bottom: 56px;
+        }
+
+        .titulo-seccion {
+            margin: 0 0 32px;
+            font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700;
+            font-size: 32px;
+            line-height: 40px;
+            color: var(--azul);
+        }
+
+        .boxes { display: grid; grid-template-columns: repeat(4, 80px); justify-content: space-between; row-gap: 24px; }
+        .box { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+
+        .box-icono {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 4px 16px rgba(175, 193, 223, .45);
+        }
+
+        .box-icono img { width: 24px; height: 24px; }
+
+        .etiqueta {
+            position: absolute;
+            top: -8px;
+            right: -10px;
+            padding: 1px 8px;
+            border-radius: 10px 10px 0 10px;
+            background: var(--azul-etiqueta);
+            color: #fff;
+            font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700;
+            font-size: 12px;
+            line-height: 14px;
+            white-space: nowrap;
+        }
+
+        .box-titulo { font-size: 14px; line-height: 20px; color: var(--texto); }
+
+        .tarjeta-preaprobados {
+            position: relative;
+            align-self: start;
+            padding: 40px 32px 32px;
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: 0 4px 28px rgba(175, 193, 223, .5);
+        }
+
+        .tarjeta-preaprobados .etiqueta { top: -10px; left: 24px; right: auto; }
+
+        .tarjeta-preaprobados h2 {
+            max-width: 280px;
+            margin: 0 0 16px;
+            font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700;
+            font-size: 32px;
+            line-height: 40px;
+            color: var(--azul);
+        }
+
+        .tarjeta-preaprobados ul { margin: 0 0 24px; padding: 0; list-style: none; color: var(--texto); }
+        .tarjeta-preaprobados li { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .tarjeta-preaprobados li::before { content: '✓'; display: inline-flex; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--azul-etiqueta); color: #fff; font-size: 10px; line-height: 16px; }
+
+        .formulario { display: flex; gap: 8px; }
+
+        .campo {
+            display: flex;
+            flex: 1;
+            height: 48px;
+            border: 1px solid var(--gris-borde);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .campo span { display: flex; align-items: center; padding: 0 12px; border-right: 1px solid var(--gris-borde); font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700; color: var(--texto); }
+        .campo span::after { content: '▾'; margin-left: 6px; }
+        .campo div { display: flex; align-items: center; padding: 0 12px; color: #8792A3; }
+
+        .btn-conocer { height: 48px; padding: 0 24px; border: 0; border-radius: 24px; background: var(--naranja); color: #fff; font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700; font-size: 16px; }
+
+        .ilustracion-seguridad {
+            position: absolute;
+            top: -24px;
+            right: 16px;
+            width: 140px;
+            height: 120px;
+            background: url('https://www.viabcp.com/wcm/connect/6930137b-6f3d-41d9-b892-8624b258f9cd/imgseguridad.png?MOD=AJPERES') no-repeat center / contain;
+        }
+
+        @media (max-width: 1100px) {
+            .tienda .container { grid-template-columns: 1fr; gap: 40px; }
+            .titulo-seccion { text-align: center; }
+        }
+
+        @media (max-width: 600px) {
+            .boxes { grid-template-columns: repeat(4, 72px); }
+            .ilustracion-seguridad { display: none; }
+            .tarjeta-preaprobados { padding: 32px 20px 24px; }
+            .tarjeta-preaprobados h2 { font-size: 24px; line-height: 32px; }
+            .formulario { flex-direction: column; }
+        }
+
+        /* ================= Promociones ================= */
+        .promos { padding: 24px 0 160px; text-align: center; }
+        .antetitulo { font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700; font-size: 12px; color: #6982A3; text-transform: uppercase; letter-spacing: .5px; }
+        .promos h2 { margin: 8px 0 32px; font-family: 'Flexo-Demi', 'Nunito Sans', sans-serif; font-weight: 700; font-size: 40px; line-height: 48px; color: var(--azul); }
+        .promos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; }
+        .promos-grid div { height: 220px; border-radius: 16px; background: linear-gradient(160deg, #F2F8FF, #D9EBFD); }
+
+        @media (max-width: 767px) {
+            .promos h2 { font-size: 28px; line-height: 36px; }
+        }
+
+        /* ================= Panel de prueba ================= */
+        .panel {
+            position: fixed;
+            left: 12px;
+            bottom: 12px;
+            z-index: 100;
+            width: min(420px, calc(100% - 24px));
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(17, 24, 39, .95);
+            color: #e5e7eb;
+            font: 12px/1.4 ui-monospace, monospace;
+        }
+
+        .panel .opciones { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+
+        .panel button {
+            padding: 4px 8px;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            background: #1f2937;
+            color: #e5e7eb;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .panel button.activo { background: #2563eb; border-color: #2563eb; }
+        .panel pre { max-height: 120px; margin: 0; overflow: auto; white-space: pre-wrap; }
+        .panel.min .ocultable { display: none; }
+    </style>
+</head>
+<body>
+
+<header class="bcp_header bcp_header_principal">
+    <div class="bcp_cintillo activo">
+        <div class="bcp_cintillo_experimentos"></div>
+
+        <div class="bcp_cintillo_campana">
+            <a href="https://www.mitarjetabcp.viabcp.com/?pcid=viabcp:home:pide-tu-tarjeta:masivo:cintillo" target="_blank">
+                <div class="container">
+                    <div class="bcp_cintillo_texto_boton">
+                        <div class="bcp_texto">
+                            <p dir="ltr">🎁 ¡Gana hasta S/500 de dscto en Mercado Libre! Solo pide tu tarjeta 👈</p>
+                        </div>
+                    </div>
+                </div>
+            </a>
+            <button class="btn_cerrar_promocion" aria-label="Cerrar promoción">
+                <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M6.707 5.293 12 10.585l5.293-5.292a1 1 0 1 1 1.414 1.414L13.415 12l5.292 5.293a1 1 0 0 1-1.414 1.414L12 13.415l-5.293 5.292a1 1 0 0 1-1.414-1.414L10.585 12 5.293 6.707a1 1 0 0 1 1.414-1.414Z" fill="white"/>
+                </svg>
+            </button>
+            <span class="listaNegraCintilloGenerico" style="display:none;">
+/prestamo-online
+/adelanto-de-sueldo
+            </span>
+        </div>
+    </div>
+
+    <div class="bcp_nivel1">
+        <div class="container bcp_nivel1_desktop">
+            <ul class="bcp_tipo_cliente">
+                <li class="activo">Personas</li>
+                <li>PyMES</li>
+                <li>Empresas</li>
+            </ul>
+            <ul class="bcp_traducir">
+                <li>Español <span aria-hidden="true">/</span> Quechua</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="container bcp_nivel2">
+        <a class="bcp-logo" href="/" aria-label="Enlace al home de ViaBCP"><svg aria-hidden="true" width="92" height="24" viewBox="0 0 92 24" fill="none" xmlns="http://www.w3.org/2000/svg"> <path fill-rule="evenodd" clip-rule="evenodd" d="M22.8931 18.5706C22.8931 18.5706 22.7182 19.3898 23.4834 19.4576C23.8703 19.4698 24.2816 19.4698 24.7139 19.4698C27.4727 19.4698 29.9964 18.4677 30.053 16.0061C30.105 13.8244 28.1409 13.1668 25.7742 13.1668H24.1042L22.8931 18.5706ZM35.4095 16.1264C35.4095 19.3913 32.6364 23.6987 23.0455 23.1686C21.9215 23.1059 21.2308 23.0141 20.2169 22.7679C16.6043 21.8891 17.8751 17.676 17.8751 17.676L21.5509 1.37271C23.5736 1.04699 25.842 0.849202 28.172 0.849202C33.3016 0.849202 36.7006 2.6583 36.7006 6.04406C36.7006 9.21419 33.6049 10.9371 31.2616 11.3276C33.1186 11.4647 35.4095 12.8813 35.4095 16.1264ZM26.0311 4.63511L25.1039 8.83544C25.1039 8.83544 24.8734 9.73464 25.659 9.73464H26.7407C29.5234 9.73464 31.4507 8.65703 31.4992 6.75873C31.5384 5.19278 30.1743 4.5143 28.2373 4.5143C27.3518 4.5143 26.4221 4.57394 26.0311 4.63511ZM58.8611 23.2274H55.8163L60.6442 1.49373C62.6409 1.03241 64.7426 0.941161 67.1766 0.961551C73.1178 0.985 75.8413 3.23146 75.8413 7.14736C75.8413 10.7355 72.9837 16.015 64.7665 16.015C63.9249 16.015 63.2011 15.9196 62.6786 15.885C62.6786 15.885 62.0093 18.9068 61.6112 20.6873C61.1096 22.9226 59.64 23.2274 58.8611 23.2274ZM65.4659 4.79334L64.1237 10.8532C64.1237 10.8532 63.691 12.1414 65.236 12.1414C65.4266 12.1495 65.6336 12.1551 65.8615 12.1551C69.3155 12.1286 71.0895 9.87605 71.0895 7.54394C71.0895 5.24956 69.5041 4.68527 67.5956 4.68527C66.621 4.68527 65.8895 4.73115 65.4659 4.79334ZM43.7638 13.6254C43.7638 17.056 45.7564 19.2495 49.1748 19.2495C50.5822 19.2495 52.1202 19.0135 54.1943 17.4924L53.3813 21.1462C53.3813 21.1462 53.1555 22.3584 51.8082 22.8294C50.7138 23.2398 49.5592 23.4264 47.8092 23.4264C42.9345 23.4264 38.1775 21.0265 38.1775 13.9155C38.1775 7.26373 42.44 0.50293 50.6684 0.50293C52.2828 0.50293 53.4241 0.730278 54.8855 1.2018C57.1391 1.9287 57.4129 3.14904 57.2635 3.88053C57.1111 4.62935 56.5794 6.42877 56.5794 6.42877C55.1618 5.16255 52.6926 4.80623 51.3199 4.80623C46.0603 4.80623 43.7638 10.0877 43.7638 13.6254ZM9.01081 10.7857C7.17164 8.79161 5.23153 7.58605 3.79913 6.89891C3.79913 6.89891 3.10129 6.55279 2.73682 6.35399C3.26798 5.16015 3.96684 4.30734 3.96684 4.30734C4.06573 4.17838 6.18272 1.6908 8.04484 2.56451C10.0787 3.47951 10.2857 7.67933 9.01081 10.7857ZM84.5695 10.7857C82.7303 8.79161 80.7902 7.58605 79.3578 6.89891C79.3578 6.89891 78.66 6.55279 78.2955 6.35399C78.8267 5.16015 79.5256 4.30734 79.5256 4.30734C79.6244 4.17838 81.7414 1.6908 83.6035 2.56451C85.6374 3.47951 85.8444 7.67933 84.5695 10.7857Z" fill="#002A8D"></path> <path fill-rule="evenodd" clip-rule="evenodd" d="M15.3212 13.9614C13.3383 17.1285 7.92886 20.7385 6.39605 21.2799C3.41503 22.5273 1.39693 20.214 1.22464 19.9714C0.668503 19.2552 0.533419 19.1038 0.264272 18.5813C0.211768 18.6679 5.98672 15.9816 8.05579 12.5061C10.2966 9.521 10.4919 3.66551 8.04458 2.56445C8.78473 2.93708 10.5286 3.93823 12.1022 5.34055C13.6722 6.6715 15.0292 8.41688 15.0001 8.39446C15.1658 8.61926 17.1324 11.0671 15.3212 13.9614ZM90.5588 8.39446C90.7245 8.61926 92.6911 11.0671 90.88 13.9614C88.8975 17.1285 83.4876 20.7385 81.9548 21.2799C78.9737 22.5273 76.9557 20.214 76.7834 19.9714C76.2272 19.2552 76.0921 19.1038 75.823 18.5813C75.7705 18.6679 81.5459 15.9816 83.6145 12.5061C85.8554 9.521 86.0506 3.66551 83.6033 2.56445C84.3434 2.93708 86.0873 3.93823 87.6609 5.34055C89.2309 6.6715 90.5884 8.41688 90.5588 8.39446Z" fill="#FF7800"></path> </svg></a>
+        <ul class="bcp_categorias">
+            <li>Productos <span aria-hidden="true">⌄</span></li>
+            <li>Soluciones Digitales <span aria-hidden="true">⌄</span></li>
+            <li>Beneficios <span aria-hidden="true">⌄</span></li>
+            <li>Ayuda y Educación <span aria-hidden="true">⌄</span></li>
+        </ul>
+        <div class="acciones">
+            <a class="btn btn-buscar" href="/buscador">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 17 16" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.42 .5c3.96 0 7.17 3.08 7.17 6.88 0 1.44-.46 2.77-1.24 3.87l2.64 2.53a1.27 1.27 0 0 1 0 1.83 1.4 1.4 0 0 1-1.9.09l-2.64-2.53a7.4 7.4 0 0 1-4.03 1.19C3.46 14.27.25 11.18.25 7.38S3.46.5 7.42.5Zm0 2.58c-2.47 0-4.48 1.93-4.48 4.3s2.01 4.3 4.48 4.3 4.48-1.92 4.48-4.3-2-4.3-4.48-4.3Z" fill="#0A47F0"/></svg>
+                Buscar
+            </a>
+            <a class="btn btn-otro" href="https://www.abretucuenta.viabcp.com/">Abrir cuenta</a>
+            <a class="btn btn-banca" href="https://bcpzonasegura.viabcp.com/">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 1.33a3.33 3.33 0 0 1 3.33 3.34V6h1.34c.36 0 .66.3.66.67V14c0 .37-.3.67-.66.67H3.33a.67.67 0 0 1-.66-.67V6.67c0-.37.3-.67.66-.67h1.34V4.67A3.33 3.33 0 0 1 8 1.33ZM8 9a.67.67 0 0 0-.67.67V11a.67.67 0 0 0 1.34 0V9.67A.67.67 0 0 0 8 9Zm0-6.33a2 2 0 0 0-2 2V6h4V4.67a2 2 0 0 0-2-2Z" fill="white"/></svg>
+                <span class="largo">Banca por Internet</span><span class="corto">Banca</span>
+            </a>
+            <span class="icono-boton" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 17 16" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.42 .5c3.96 0 7.17 3.08 7.17 6.88 0 1.44-.46 2.77-1.24 3.87l2.64 2.53a1.27 1.27 0 0 1 0 1.83 1.4 1.4 0 0 1-1.9.09l-2.64-2.53a7.4 7.4 0 0 1-4.03 1.19C3.46 14.27.25 11.18.25 7.38S3.46.5 7.42.5Zm0 2.58c-2.47 0-4.48 1.93-4.48 4.3s2.01 4.3 4.48 4.3 4.48-1.92 4.48-4.3-2-4.3-4.48-4.3Z" fill="#202E44"/></svg>
+            </span>
+            <span class="icono-boton" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="#202E44" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+        </div>
+    </div>
+</header>
+
+<section class="banner" aria-label="Banner principal">
+    <div class="container">
+        <div class="banner-texto">
+            <h1>Gana hasta S/500 de dto. en Mercado Libre</h1>
+            <p>Pide tu Tarjeta de Crédito BCP por digital</p>
+            <a class="btn-banner" href="https://www.mitarjetabcp.viabcp.com/">Pídela Aquí</a>
+        </div>
+    </div>
+    <div class="banner-img" aria-hidden="true"></div>
+    <div class="banner-puntos" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+</section>
+
+<section class="tienda" aria-label="¿Qué necesitas hacer hoy?">
+    <div class="container">
+        <div>
+            <h2 class="titulo-seccion">¿Qué necesitas hacer hoy?</h2>
+            <div class="boxes">
+                <a class="box" href="#">
+                    <span class="box-icono"><span class="etiqueta">Sorteo</span><img alt="" src="https://www.viabcp.com/wcm/connect/e2847013-4be2-402f-af9f-50ee33b1f48d/cuentas.svg?MOD=AJPERES"></span>
+                    <span class="box-titulo">Abrir una cuenta</span>
+                </a>
+                <a class="box" href="#">
+                    <span class="box-icono"><img alt="" src="https://www.viabcp.com/wcm/connect/0b0eb28f-7be0-48ec-af16-1d7026984b26/tarjetas.svg?MOD=AJPERES"></span>
+                    <span class="box-titulo">Obtener una Tarjeta</span>
+                </a>
+                <a class="box" href="#">
+                    <span class="box-icono"><img alt="" src="https://www.viabcp.com/wcm/connect/a5275090-531c-4a26-ba55-f11a0eeaf4d6/billete.svg?MOD=AJPERES"></span>
+                    <span class="box-titulo">Solicitar un Préstamo</span>
+                </a>
+                <a class="box" href="#">
+                    <span class="box-icono"><img alt="" src="https://www.viabcp.com/wcm/connect/45e66cde-9dd2-4e90-8f7c-a8f7f8332c62/prestamo.svg?MOD=AJPERES"></span>
+                    <span class="box-titulo">Adelantar mi Sueldo</span>
+                </a>
+                <a class="box" href="#">
+                    <span class="box-icono"><span class="etiqueta">Promo</span><img alt="" src="https://www.viabcp.com/wcm/connect/8543f92c-17d5-4e9e-9056-c4d1f14000f1/car.svg?MOD=AJPERES"></span>
+                    <span class="box-titulo">SOAT Virtual desde S/47.00</span>
+                </a>
+                <a class="box" href="#">
+                    <span class="box-icono"><img alt="" src="https://www.viabcp.com/wcm/connect/a61757e2-c13e-47ce-8919-2e4ae9eb81c2/seguridad.svg?MOD=AJPERES"></span>
+                    <span class="box-titulo">Proteger mis Tarjetas</span>
+                </a>
+                <a class="box" href="#">
+                    <span class="box-icono"><img alt="" src="https://www.viabcp.com/wcm/connect/21ca64a1-ddaa-4cbf-a751-6e87579c13cd/beneficios.svg?MOD=AJPERES"></span>
+                    <span class="box-titulo">Ver mis beneficios</span>
+                </a>
+                <a class="box" href="#">
+                    <span class="box-icono">
+                        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" stroke="#0030B3" stroke-width="2.5"/><path d="M12.7 12.7c0-1.8 1.5-3.2 3.3-3.2s3.3 1.3 3.3 3c0 1.4-.8 2.1-1.8 2.8-.9.6-1.5 1.2-1.5 2.4" stroke="#0030B3" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="22.3" r="1.6" fill="#0030B3"/></svg>
+                    </span>
+                    <span class="box-titulo">Ir a Ayuda Rápida</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="tarjeta-preaprobados">
+            <span class="etiqueta">Mi Espacio BCP</span>
+            <div class="ilustracion-seguridad" aria-hidden="true"></div>
+            <h2>¡Conoce tus productos preaprobados!</h2>
+            <ul>
+                <li>Solo con tu número de documento.</li>
+                <li>Para clientes y no clientes BCP.</li>
+            </ul>
+            <div class="formulario">
+                <div class="campo"><span>DNI</span><div>Nro Documento</div></div>
+                <button type="button" class="btn-conocer">Conocer</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="promos">
+    <div class="container">
+        <div class="antetitulo">Promociones y beneficios</div>
+        <h2>Explora las mejores promociones con BCP</h2>
+        <div class="promos-grid"><div></div><div></div><div></div></div>
+    </div>
+</section>
+
+<aside class="panel" id="panel">
+    <div class="opciones" id="opciones"></div>
+    <div class="opciones ocultable">
+        <button type="button" id="borrar-cookie">Borrar cookie de cierre</button>
+        <button type="button" id="simular-mbox">Simular mbox reescribiendo la caja</button>
+    </div>
+    <pre id="log" class="ocultable">digitalData:</pre>
+</aside>
+
+<script>
+    (() => {
+        const COOKIE_OCULTAR = 'bcp_cintillo_promocion_ocultar';
+        const SNIPPETS = ['control', 'piloto1', 'piloto2', 'piloto3', 'piloto4', 'piloto5', 'piloto6'];
+        const log = document.getElementById('log');
+
+        // digitalData simulado: cada push se muestra en el panel.
+        window.digitalData = [];
+        window.digitalData.push = function (evento) {
+            log.textContent += '\n' + JSON.stringify(evento.action || evento);
+            log.scrollTop = log.scrollHeight;
+            return Array.prototype.push.call(this, evento);
+        };
+
+        // Ningún link navega.
+        document.addEventListener('click', evento => {
+            if (evento.target.closest('a')) evento.preventDefault();
+        });
+
+        // Lógica mínima del cintillo genérico del sitio.
+        const cintilloGenerico = document.querySelector('.bcp_cintillo_campana');
+        if (document.cookie.includes(COOKIE_OCULTAR + '=')) {
+            cintilloGenerico.remove();
+        } else {
+            cintilloGenerico.querySelector('.btn_cerrar_promocion').addEventListener('click', () => {
+                cintilloGenerico.remove();
+                document.cookie = COOKIE_OCULTAR + '=true; path=/; max-age=86400';
+            });
+        }
+
+        // Selector de snippet (recarga con ?v=...).
+        const actual = new URLSearchParams(location.search).get('v');
+        const opciones = document.getElementById('opciones');
+        SNIPPETS.forEach(nombre => {
+            const boton = document.createElement('button');
+            boton.type = 'button';
+            boton.textContent = nombre;
+            if (nombre === actual) boton.classList.add('activo');
+            boton.addEventListener('click', () => { location.search = '?v=' + nombre; });
+            opciones.appendChild(boton);
+        });
+
+        const minimizar = document.createElement('button');
+        minimizar.type = 'button';
+        minimizar.textContent = '–';
+        minimizar.title = 'Minimizar panel';
+        minimizar.addEventListener('click', () => document.getElementById('panel').classList.toggle('min'));
+        opciones.appendChild(minimizar);
+
+        document.getElementById('borrar-cookie').addEventListener('click', () => {
+            document.cookie = COOKIE_OCULTAR + '=; path=/; max-age=0';
+            location.reload();
+        });
+
+        document.getElementById('simular-mbox').addEventListener('click', () => {
+            document.querySelector('.bcp_cintillo').innerHTML =
+                '<div class="bcp_cintillo_experimentos"><div style="padding:14px;text-align:center;background:#333;color:#fff">Contenido del mbox del sitio</div></div>';
+        });
+
+        if (!actual) return;
+
+        // Carga el snippet tal como lo inyectaría Target.
+        const ruta = actual === 'control' ? 'control.html' : 'variantes/' + actual + '.html';
+        fetch(ruta)
+            .then(respuesta => respuesta.text())
+            .then(html => {
+                // Antes de ejecutar el snippet, para no borrar los eventos que empuje al cargar.
+                log.textContent = 'digitalData (' + actual + '):';
+                const plantilla = document.createElement('template');
+                plantilla.innerHTML = html;
+                plantilla.content.querySelectorAll('script').forEach(original => {
+                    const script = document.createElement('script');
+                    script.textContent = original.textContent;
+                    document.body.appendChild(script);
+                });
+            })
+            .catch(() => {
+                log.textContent = 'No se pudo cargar ' + ruta + '. Abre la página con: python3 -m http.server 8000';
+            });
+    })();
+</script>
+</body>
+</html>

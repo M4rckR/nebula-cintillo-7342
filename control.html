@@ -1,0 +1,114 @@
+<script>
+    (() => {
+        // Control: no modifica el cintillo actual, solo envía su vista y su clic para compararlos con las variantes.
+        // Código del experimento (mismo valor en control y pilotos).
+        const CODIGO_EXPERIMENTO = 'TC0098';
+        const NOMBRE_PROMOCION = 'Header - ViaBCP - ' + CODIGO_EXPERIMENTO + ' - C';
+        const TIMEOUT_ESPERA = 10000;
+
+        let vistaEnviada = false;
+        let enlaceObservado = null;
+        let observerVista = null;
+
+        // Copy para el tageo: el texto del cintillo del CMS, sin emojis ni espacios de más.
+        function obtenerCopy(enlace) {
+            return enlace.textContent
+                .replace(/\p{Extended_Pictographic}|️/gu, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        // Esquema de tageo del equipo (mismo name/creative/position en vista y clic):
+        // promotion.name = 'Header - ViaBCP - <código> - C', creative = 'Cintillo', position = copy mostrado.
+        function enviarTageoPromocion(evento, enlace) {
+            if (!window.digitalData || typeof window.digitalData.push !== 'function') {
+                window.digitalData = [];
+            }
+
+            window.digitalData.push({
+                promotion: {
+                    name: NOMBRE_PROMOCION,
+                    creative: 'Cintillo',
+                    position: obtenerCopy(enlace)
+                },
+                event: evento
+            });
+        }
+
+        // Una sola vista por página. Si el mbox reemplaza el cintillo, se observa el enlace nuevo.
+        function registrarVista(enlace) {
+            if (vistaEnviada || enlace === enlaceObservado) return;
+            if (observerVista) observerVista.disconnect();
+            enlaceObservado = enlace;
+
+            const enviarVista = () => {
+                if (vistaEnviada) return;
+                vistaEnviada = true;
+                enviarTageoPromocion('trackPromotionView', enlace);
+            };
+
+            if (!('IntersectionObserver' in window)) {
+                enviarVista();
+                return;
+            }
+
+            observerVista = new IntersectionObserver(entradas => {
+                if (entradas.some(entrada => entrada.isIntersecting && entrada.intersectionRatio >= 0.5)) {
+                    observerVista.disconnect();
+                    enviarVista();
+                }
+            }, { threshold: [0.5] });
+            observerVista.observe(enlace);
+        }
+
+        // Sin enlace (cintillo cerrado con cookie o ruta de lista negra) no hay vista.
+        function buscarEnlace(caja) {
+            const enlace = caja.querySelector('a');
+            if (enlace) registrarVista(enlace);
+        }
+
+        function iniciar(caja) {
+            if (caja.hasAttribute('data-control-at')) return;
+            caja.setAttribute('data-control-at', 'true');
+
+            buscarEnlace(caja);
+            const observador = new MutationObserver(() => {
+                if (vistaEnviada) {
+                    observador.disconnect();
+                    return;
+                }
+                buscarEnlace(caja);
+            });
+            observador.observe(caja, { childList: true, subtree: true });
+            setTimeout(() => observador.disconnect(), TIMEOUT_ESPERA);
+
+            // Delegado en la caja: sigue funcionando si el contenido del cintillo se reemplaza. La X no cuenta.
+            caja.addEventListener('click', evento => {
+                const enlace = evento.target.closest('a');
+                if (enlace && !evento.target.closest('.btn_cerrar_promocion')) {
+                    enviarTageoPromocion('trackPromotionClick', enlace);
+                }
+            }, true);
+        }
+
+        function esperarCaja() {
+            const caja = document.querySelector('header .bcp_cintillo');
+            if (caja) {
+                iniciar(caja);
+                return;
+            }
+
+            const observador = new MutationObserver(() => {
+                const cajaEncontrada = document.querySelector('header .bcp_cintillo');
+                if (cajaEncontrada) {
+                    observador.disconnect();
+                    iniciar(cajaEncontrada);
+                }
+            });
+            observador.observe(document.documentElement, { childList: true, subtree: true });
+            setTimeout(() => observador.disconnect(), TIMEOUT_ESPERA);
+        }
+
+        esperarCaja();
+    })();
+</script>

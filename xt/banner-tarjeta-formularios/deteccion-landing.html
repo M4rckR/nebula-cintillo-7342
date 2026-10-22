@@ -1,0 +1,35 @@
+<script>
+(function () {
+  // ───────────────────────────────────────────────
+  // DETECTOR DE LANDING
+  // ───────────────────────────────────────────────
+  function detectarTipoLandingBCP(root) {
+    root = root || document;
+
+    // 1) LANDING "POR CÓDIGO": basta con el wrapper .bcp_crosssell_section
+    if (root.querySelector('.bcp_crosssell_section')) return 'CODIGO';
+
+    // 2) LANDING TRADICIONAL: tipo-formulario="FORMPROMOCIONES" + clases/tags de siempre
+    var section = root.querySelector('section[tipo-formulario="FORMPROMOCIONES"]');
+    if (section) {
+      var tieneClase = section.classList.contains('bcp_form_exclusivo_promociones') ||
+        section.classList.contains('bcp-formulario');
+      var tieneTag = ['bcp-form-cbodocumento', 'bcp-form-confirmacion', 'bcp-form-legal']
+        .some(function (tag) { return !!section.querySelector(tag); });
+      if (tieneClase && tieneTag) return 'TRADICIONAL';
+    }
+
+    return 'DESCONOCIDO';
+  }
+
+  function init() {
+    alert('Tipo de landing: ' + detectarTipoLandingBCP());
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

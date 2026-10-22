@@ -1,0 +1,156 @@
+<script>
+(function () {
+  // ═══════════════════════════════════════════════
+  // CONTENIDO DEL BANNER (tomado de bcp-latam-pass/solicitar-tarjeta-de-credito-bcp)
+  // ═══════════════════════════════════════════════
+  var TITULO      = '¿Aún no tienes una Tarjeta de Crédito BCP?';
+  var DESCRIPCION = '¡Pídela para poder ';
+  var DESTACADO   = 'participar de esta campaña!';
+  var BTN_TEXTO   = 'Pídela aquí';
+  var BTN_HREF    = 'https://www.mitarjetabcp.viabcp.com/login';
+  var IMG_SRC     = 'https://www.viabcp.com/wcm/connect/db7653d8-4820-4ecb-92ef-ad5d76c9b1a2/Visa+Oro+LATAM+Pass.png?MOD=AJPERES&CACHEID=ROOTWORKSPACE-db7653d8-4820-4ecb-92ef-ad5d76c9b1a2-pnZ4TuX';
+
+  var BANNER_ID = 'at-banner-tarjeta';
+  var STYLE_ID  = 'at-banner-tarjeta-styles';
+
+  // ───────────────────────────────────────────────
+  // DETECTOR DE LANDING
+  // ───────────────────────────────────────────────
+  function detectarTipoLandingBCP(root) {
+    root = root || document;
+
+    // 1) LANDING "POR CÓDIGO": basta con el wrapper .bcp_crosssell_section
+    if (root.querySelector('.bcp_crosssell_section')) return 'CODIGO';
+
+    // 2) LANDING TRADICIONAL: tipo-formulario="FORMPROMOCIONES" + clases/tags de siempre
+    var section = root.querySelector('section[tipo-formulario="FORMPROMOCIONES"]');
+    if (section) {
+      var tieneClase = section.classList.contains('bcp_form_exclusivo_promociones') ||
+        section.classList.contains('bcp-formulario');
+      var tieneTag = ['bcp-form-cbodocumento', 'bcp-form-confirmacion', 'bcp-form-legal']
+        .some(function (tag) { return !!section.querySelector(tag); });
+      if (tieneClase && tieneTag) return 'TRADICIONAL';
+    }
+
+    return 'DESCONOCIDO';
+  }
+
+  // ───────────────────────────────────────────────
+  // CONFIGURACIÓN POR LANDING
+  //  - contenedor: donde viven todos los estados de resultado
+  //  - antesDe:    el banner se inserta antes de este nodo (queda debajo de los estados)
+  //  - hayEstadoVisible: cualquier casuística (éxito, no aplica, duplicado,
+  //    límite, no vigente), tenga o no banner nativo
+  // ───────────────────────────────────────────────
+  var LANDINGS = {
+    CODIGO: {
+      contenedor: '.form-premio .bcp_contenedor_formulario',
+      antesDe: '.bcp_crosssell_section',
+      // El cross-sell nativo ya viene oculto con display:none !important; se refuerza
+      cssOcultarNativo: '.form-premio .bcp_crosssell_section{display:none !important;}',
+      hayEstadoVisible: function (cont) {
+        // mostrarEstado() de la landing pone style.display = 'block' en #estado-<tipo>
+        return [].some.call(cont.querySelectorAll('.bcp_estado_resultado'), function (el) {
+          return el.style.display === 'block';
+        });
+      }
+    },
+    TRADICIONAL: {
+      contenedor: '.bcp_form_exclusivo_promociones .bcp_contenedor_formulario',
+      antesDe: '.bcp_confirmacion_registro',
+      cssOcultarNativo: '.bcp_form_exclusivo_promociones .bcp_resultados_venta_formulario{display:none !important;}',
+      hayEstadoVisible: function (cont) {
+        // La landing marca con .mostrar el paso de respuesta que corresponde
+        return !!cont.querySelector(
+          '.bcp_respuesta_registro_correcto.mostrar,' +
+          '.bcp_respuesta_registro_existente.mostrar,' +
+          '.bcp_respuesta_no_aplica_campana.mostrar,' +
+          '.bcp_respuesta_limite_inscritos_campana.mostrar,' +
+          '.bcp_respuesta_novigente.mostrar'
+        );
+      }
+    }
+  };
+
+  function inyectarEstilo(css) {
+    if (document.getElementById(STYLE_ID)) return;
+    var style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  // Estilos copiados de .bcp_formulario_latam_cards .bcp_exito_solicitud* de la landing origen
+  var CSS_BANNER =
+    '#' + BANNER_ID + '{display:none;width:100%;margin-top:32px;padding:32px 24px;border-radius:16px;' +
+      'background:#e6f1ff;box-sizing:border-box;text-align:center;}' +
+    '#' + BANNER_ID + '.at-visible{display:block;}' +
+    '#' + BANNER_ID + ' .at-banner-tarjeta_imagen{display:block;margin:0 auto 16px;border-radius:4px;' +
+      'box-shadow:0 4px 6px rgba(32,46,68,.12),0 8px 16px rgba(32,46,68,.16);}' +
+    '#' + BANNER_ID + ' .at-banner-tarjeta_titulo{margin:0 0 16px;color:#002a8d;font-family:"Flexo-Demi","Flexo",system-ui,sans-serif;' +
+      'font-size:20px;font-weight:500;line-height:28px;}' +
+    '#' + BANNER_ID + ' .at-banner-tarjeta_descripcion{margin:0;color:#202e44;font-size:16px;line-height:24px;}' +
+    '#' + BANNER_ID + ' .at-banner-tarjeta_boton{display:flex;align-items:center;justify-content:center;width:100%;' +
+      'max-width:320px;margin:24px auto 0;padding:16px 40px;border:0;border-radius:999px;background-color:#ff7800;' +
+      'color:#fff;font-family:"Flexo-Demi","Flexo",system-ui,sans-serif;font-weight:700;line-height:24px;' +
+      'box-sizing:border-box;text-decoration:none;}' +
+    '@media (min-width:768px){' +
+      '#' + BANNER_ID + '{margin-top:40px;padding:40px 32px;}' +
+      '#' + BANNER_ID + ' .at-banner-tarjeta_titulo{font-size:24px;line-height:32px;}' +
+    '}';
+
+  function buildBanner() {
+    var banner = document.createElement('div');
+    banner.id = BANNER_ID;
+    banner.innerHTML =
+      '<img class="at-banner-tarjeta_imagen" src="' + IMG_SRC + '" alt="" width="92" height="59" draggable="false">' +
+      '<h3 class="at-banner-tarjeta_titulo">' + TITULO + '</h3>' +
+      '<p class="at-banner-tarjeta_descripcion">' + DESCRIPCION + '<strong>' + DESTACADO + '</strong></p>' +
+      '<a class="bcp_boton_naranja large at-banner-tarjeta_boton" href="' + BTN_HREF + '">' + BTN_TEXTO + '</a>';
+    return banner;
+  }
+
+  // Inserta el banner (oculto) una sola vez y lo muestra/oculta según el estado
+  function sincronizar(cfg) {
+    var cont = document.querySelector(cfg.contenedor);
+    if (!cont) return;
+
+    var banner = document.getElementById(BANNER_ID);
+    if (!banner) {
+      banner = buildBanner();
+      cont.insertBefore(banner, cont.querySelector(cfg.antesDe));
+    }
+
+    var visible = cfg.hayEstadoVisible(cont);
+    if (visible !== banner.classList.contains('at-visible')) {
+      banner.classList.toggle('at-visible', visible);
+      if (visible) console.log('Banner tarjeta mostrado');
+    }
+  }
+
+  // ───────────────────────────────────────────────
+  // INIT
+  // ───────────────────────────────────────────────
+  function init() {
+    var tipo = detectarTipoLandingBCP();
+    console.log('Landing observada:', tipo);
+    var cfg = LANDINGS[tipo];
+    if (!cfg) return;
+
+    inyectarEstilo(cfg.cssOcultarNativo + CSS_BANNER);
+    sincronizar(cfg);
+
+    // Se observa el body: en la tradicional parte del form se crea después de cargar
+    new MutationObserver(function () { sincronizar(cfg); })
+      .observe(document.body, {
+        attributes: true, attributeFilter: ['style', 'class'], childList: true, subtree: true
+      });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

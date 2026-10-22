@@ -1,0 +1,339 @@
+<script>
+(function () {
+  // ═══════════════════════════════════════════════
+  // CONFIGURACIÓN DE CAMPAÑA Y ANALÍTICA
+  // ═══════════════════════════════════════════════
+  var EXPERIMENTO_ID = 'F0005'; // Reemplaza con tu código de experimento real
+  var PRODUCTO_NMB   = 'Cuotas Sin Intereses'; // Reemplaza con el nombre de tu producto para el taggeo
+
+  // ═══════════════════════════════════════════════
+  // CONTENIDO COMPARTIDO
+  // ═══════════════════════════════════════════════
+  var TITULO      = 'Elige pagar en Cuotas sin Intereses';
+  var DESCRIPCION = 'Fracciona tus compras y paga 0% de interés mensual con tus tarjetas de crédito BCP.';
+  var IMG_SRC     = 'https://www.viabcp.com/wcm/connect/e1197292-5367-42ce-a810-801ba88527ee/img_cross_sell.png?MOD=AJPERES&attachment=false&id=1782165490005';
+  var BTN_TEXTO   = 'Conoce más';
+  var BTN_HREF    = 'https://www.viabcp.com/beneficios/cuotas-sin-intereses';
+  var DATA_FONDO  = 'morado';   
+  var BADGE       = 'te puede interesar'; 
+
+  var ya_ejecutado = false;
+
+  // ───────────────────────────────────────────────
+  // FUNCIONES DE TAGGEO (DATA LAYER & TARGET)
+  // ───────────────────────────────────────────────
+  function trackView() {
+    window.digitalData = window.digitalData || [];
+    window.digitalData.push({
+      "promotion": {
+        "name": "Campañas - ViaBCP - " + EXPERIMENTO_ID + " - P",
+        "creative": "Banner Form",
+        "position": "Registrate ahora - " + PRODUCTO_NMB
+      },
+      "event": "trackPromotionView"
+    });
+
+    // Métrica nativa de impresión para Target (Evita falsos positivos al cargar la página)
+    if (typeof adobe !== 'undefined' && adobe.target && adobe.target.trackEvent) {
+      adobe.target.trackEvent({ mbox: "vista_banner_piloto_csi" });
+    }
+  }
+
+  function trackClick() {
+    window.digitalData = window.digitalData || [];
+    window.digitalData.push({
+      "promotion": {
+        "name": "Campañas - ViaBCP - " + EXPERIMENTO_ID + " - P",
+        "creative": "Banner Form",
+        "position": "Registrate ahora - " + PRODUCTO_NMB
+      },
+      "event": "trackPromotionClick"
+    });
+  }
+
+  // ───────────────────────────────────────────────
+  // DETECTOR DE LANDING
+  // ───────────────────────────────────────────────
+  function detectarTipoLandingBCP(root) {
+    root = root || document;
+
+    // ───────────────────────────────────────────
+    // 1) LANDING "POR CÓDIGO": se identifica por la
+    //    presencia del wrapper .bcp_crosssell_section,
+    //    sin importar qué tipo-formulario tenga la
+    //    sección (FORMPROMOCIONES, FORMPROMOCIONESFACTU
+    //    o uno personalizado). Esta comprobación va
+    //    primero porque una landing por código puede
+    //    convivir con cualquier valor de tipo-formulario.
+    // ───────────────────────────────────────────
+    if (root.querySelector('.bcp_crosssell_section')) return 'CODIGO';
+
+    // ───────────────────────────────────────────
+    // 2) LANDING TRADICIONAL: se mantiene únicamente
+    //    con tipo-formulario="FORMPROMOCIONES" y su
+    //    estructura de clases/tags de siempre.
+    // ───────────────────────────────────────────
+    var section = root.querySelector('section[tipo-formulario="FORMPROMOCIONES"]');
+    if (section) {
+      var tieneClase = section.classList.contains('bcp_form_exclusivo_promociones') ||
+        section.classList.contains('bcp-formulario');
+      var tieneTag = ['bcp-form-cbodocumento', 'bcp-form-confirmacion', 'bcp-form-legal']
+        .some(function (tag) { return !!section.querySelector(tag); });
+      if (tieneClase && tieneTag) return 'TRADICIONAL';
+    }
+
+    return 'DESCONOCIDO';
+  }
+
+  function inyectarEstilo(id, css) {
+    if (document.getElementById(id)) return;
+    var style = document.createElement('style');
+    style.id = id;
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  var badgeHTML = BADGE
+    ? '<div class="bcp_contenedor_resaltado">' +
+        '<div class="bcp_resaltado">' + BADGE + '</div>' +
+        '<div class="bcp_resaltado_sombra"></div>' +
+      '</div>'
+    : '';
+
+  // ═══════════════════════════════════════════════
+  // CÓDIGO 01 — LANDING TRADICIONAL
+  // ═══════════════════════════════════════════════
+  function ejecutarCodigo01() {
+    var STYLE_ID = 'at-varb-trad-styles';
+    var CSS_ANTI_FLICKER = '.bcp_resultados_venta_formulario .bcp_banner_formulario_ventas:not(.at-varb-trad):not(.at-varb-factu) { display: none !important; }';
+
+    inyectarEstilo(STYLE_ID,
+      CSS_ANTI_FLICKER +
+      '.at-varb-trad .bcp_titulo{font-size:22px !important;line-height:26px !important;}' +
+      '.at-varb-trad .bcp_descripcion2{font-family:"Flexo",system-ui,sans-serif !important;font-size:16px !important;}' +
+      'bcp-form-confirmacion .bcp_banner_formulario_ventas.at-varb-trad img, .at-varb-trad img{display:block;height:auto !important;object-fit:contain;}' +
+      '@media (min-width:768px) and (max-width:1023px){' +
+        '.at-varb-trad .bcp_titulo{font-size:22px !important;line-height:28px !important;}' +
+        '.at-varb-trad .bcp_descripcion2{font-family:"Flexo",system-ui,sans-serif !important;font-size:16px !important;}' +
+        'bcp-form-confirmacion .bcp_banner_formulario_ventas.at-varb-trad img, .at-varb-trad img{width:143px !important;height:137px !important;}' +
+      '}' +
+      '@media (min-width:1024px){' +
+        '.at-varb-trad .bcp_titulo{font-size:22px !important;line-height:28px !important;}' +
+        '.at-varb-trad .bcp_descripcion2{font-family:"Flexo",system-ui,sans-serif !important;font-size:20px !important;line-height:26px !important;}' +
+        'bcp-form-confirmacion .bcp_banner_formulario_ventas.at-varb-trad img, .at-varb-trad img{width:143px !important;height:137px !important;right:20px !important;}' +
+      '}'
+    );
+
+    function buildCardHTML() {
+      return (
+        '<div class="bcp_banner_formulario_ventas mostrar at-varb-trad"' +
+          ' data-producto="' + PRODUCTO_NMB + '" data-fondo="' + DATA_FONDO + '"' +
+          ' data-taggeo="Piloto" data-translate-comp="true">' +
+          badgeHTML +
+          '<div class="bcp_titulo"><p dir="ltr">' + TITULO + '</p></div>' +
+          '<div class="bcp_descripcion2"><p dir="ltr">' + DESCRIPCION + '</p></div>' +
+          '<img src="' + IMG_SRC + '" alt="' + TITULO + '">' +
+          '<a id="btn_target_piloto" class="bcp_boton_naranja medium bcp_boton_venta"' +
+            ' role="button" type="button" target="_self" href="' + BTN_HREF + '">' +
+            BTN_TEXTO +
+          '</a>' +
+        '</div>'
+      );
+    }
+
+    function aplicar(padre) {
+      if (ya_ejecutado) return;
+      ya_ejecutado = true;
+      padre.innerHTML = buildCardHTML();
+      if (!padre.classList.contains('mostrar')) padre.classList.add('mostrar');
+
+      // Lanzamos la Impresión
+      trackView();
+
+      // Atamos el evento Click al botón recién inyectado
+      var btn = document.getElementById('btn_target_piloto');
+      if(btn) {
+        btn.addEventListener('click', trackClick);
+      }
+
+      console.log('[AT VarB] Card (tradicional) reemplazado.');
+    }
+
+    function buscarYReemplazar() {
+      var padre = document.querySelector('.bcp_resultados_venta_formulario.mostrar');
+      if (!padre) return false;
+      if (!padre.querySelector('.bcp_banner_formulario_ventas.mostrar')) return false;
+      aplicar(padre);
+      return true;
+    }
+
+    if (buscarYReemplazar()) return;
+
+    [ '.bcp_respuesta_registro_correcto', '.bcp_resultados_venta_formulario' ]
+      .forEach(function (sel) {
+        var el = document.querySelector(sel);
+        if (!el) return;
+        var obs = new MutationObserver(function () {
+          if (buscarYReemplazar()) { obs.disconnect(); return; }
+          var intentos = 0;
+          var poll = setInterval(function () {
+            if (buscarYReemplazar() || ++intentos >= 40) {
+              clearInterval(poll); obs.disconnect();
+            }
+          }, 200);
+        });
+        obs.observe(el, { attributes: true, attributeFilter: ['class'], childList: true, subtree: true });
+      });
+  }
+
+  // ═══════════════════════════════════════════════
+  // CÓDIGO 02 — LANDING POR CÓDIGO
+  // ═══════════════════════════════════════════════
+  function ejecutarCodigo02() {
+    var STYLE_ID = 'at-varb-factu-styles';
+    var CSS_ANTI_FLICKER = '.bcp_resultados_venta_formulario .bcp_banner_formulario_ventas:not(.at-varb-trad):not(.at-varb-factu) { display: none !important; }';
+
+    // LA MAGIA AQUÍ: Sobrescribimos el !important nativo SOLO cuando el formulario fue exitoso
+    var CSS_FORZAR_VISIBLE = '.form-premio .bcp_crosssell_section[style*="display: block"] { display: block !important; text-align: center; margin-top: 16px; }';
+
+    inyectarEstilo(STYLE_ID,
+      CSS_ANTI_FLICKER +
+      CSS_FORZAR_VISIBLE +
+      '.at-varb-factu{text-align:left !important;}' +
+      '.at-varb-factu .bcp_titulo,' +
+      '.at-varb-factu .bcp_descripcion2,' +
+      '.at-varb-factu .bcp_contenedor_resaltado{text-align:left !important;}' +
+
+      /* Selector de 4 clases: necesario para ganarle al nativo
+         ".form-premio .bcp_crosssell_section .bcp_banner_formulario_ventas .bcp_titulo"
+         que fija 20px !important. Con menos especificidad el titulo NO llega a 22px. */
+      '.form-premio .bcp_crosssell_section .bcp_banner_formulario_ventas.at-varb-factu .bcp_titulo' +
+        '{font-size:22px !important;line-height:28px !important;padding-bottom:8px !important;}' +
+      '.form-premio .bcp_crosssell_section .bcp_banner_formulario_ventas.at-varb-factu .bcp_descripcion2' +
+        '{font-family:"Flexo",system-ui,sans-serif !important;font-size:16px !important;line-height:22px !important;}' +
+      '.form-premio .bcp_crosssell_section .bcp_banner_formulario_ventas.at-varb-factu img, .at-varb-factu img{display:block !important;object-fit:contain;}' +
+
+      /* 768-1279: la landing pone el contenedor al 100% (max-width:1279px)
+         pero la card conserva height:255px. Sin tope de ancho el texto se
+         estira y deja un hueco muerto enorme junto a la imagen. */
+      '@media (min-width:768px) and (max-width:1279px){' +
+        '.form-premio .bcp_crosssell_section .bcp_banner_formulario_ventas.at-varb-factu .bcp_titulo' +
+          '{width:auto !important;max-width:60% !important;}' +
+        '.form-premio .bcp_crosssell_section .bcp_banner_formulario_ventas.at-varb-factu .bcp_descripcion2' +
+          '{max-width:60% !important;}' +
+        '.form-premio .bcp_crosssell_section .bcp_banner_formulario_ventas.at-varb-factu img, .at-varb-factu img' +
+          '{width:143px !important;height:137px !important;right:24px !important;}' +
+      '}' +
+
+      /* 1280+: recien aca la landing aplica width:35% al contenedor.
+         Antes este bloque arrancaba en 1024 y pisaba el rango tablet. */
+      '@media (min-width:1280px){' +
+        '.form-premio .bcp_crosssell_section .bcp_banner_formulario_ventas.at-varb-factu .bcp_descripcion2' +
+          '{font-family:"Flexo",system-ui,sans-serif !important;font-size:20px !important;line-height:26px !important;}' +
+        '.form-premio .bcp_crosssell_section .bcp_banner_formulario_ventas.at-varb-factu img, .at-varb-factu img' +
+          '{width:143px !important;height:137px !important;right:20px !important;}' +
+      '}'
+    );
+
+    function buildCardHTML() {
+      return (
+        '<div class="bcp_banner_formulario_ventas mostrar at-varb-factu"' +
+          ' data-producto="' + PRODUCTO_NMB + '" data-fondo="' + DATA_FONDO + '"' +
+          ' data-taggeo="Piloto" data-translate-comp="true" style="display:block;">' +
+          badgeHTML +
+          '<div class="bcp_titulo"><p dir="ltr">' + TITULO + '</p></div>' +
+          '<div class="bcp_descripcion2"><p dir="ltr">' + DESCRIPCION + '</p></div>' +
+          '<img src="' + IMG_SRC + '" alt="' + TITULO + '">' +
+          '<a id="btn_target_piloto" class="bcp_boton_naranja medium bcp_boton_venta"' +
+            ' role="button" type="button" target="_self" href="' + BTN_HREF + '">' +
+            BTN_TEXTO +
+          '</a>' +
+        '</div>'
+      );
+    }
+
+    function aplicar(contenedorBanners) {
+      if (ya_ejecutado) return;
+      ya_ejecutado = true;
+      contenedorBanners.innerHTML = buildCardHTML();
+
+      // Lanzamos la Impresión
+      trackView();
+
+      // Atamos el evento Click al botón recién inyectado
+      var btn = document.getElementById('btn_target_piloto');
+      if(btn) {
+        btn.addEventListener('click', trackClick);
+      }
+
+
+      console.log('[AT VarB] Card (por código) reemplazado.');
+    }
+
+    function crossSellVisible() {
+      var section = document.querySelector('.form-premio .bcp_crosssell_section');
+      // Al inyectar el CSS de arriba, cuando el CMS le ponga "display: block" en línea, 
+      // nuestro !important forzará que el estilo computado sí sea 'block'.
+      if (!section || getComputedStyle(section).display === 'none') return null;
+
+      var cont = section.querySelector('.bcp_resultados_venta_formulario');
+      if (!cont) return null;
+
+      // AJUSTE CLAVE: Ya no usamos getComputedStyle aquí porque nuestro CSS anti-flicker 
+      // oculta el banner nativo a la fuerza. En su lugar, leemos qué intentó hacer el CMS:
+      var visible = Array.prototype.find.call(
+        cont.querySelectorAll('.bcp_banner_formulario_ventas'),
+        function (b) { 
+           return b.style.display === 'block' || b.classList.contains('mostrar'); 
+        }
+      );
+
+      return visible ? cont : null;
+    }
+
+    function buscarYReemplazar() {
+      var c = crossSellVisible();
+      if (c) { aplicar(c); return true; }
+      return false;
+    }
+
+    if (buscarYReemplazar()) return;
+
+    [ '.form-premio #estado-exito', '.form-premio .bcp_crosssell_section' ]
+      .forEach(function (sel) {
+        var el = document.querySelector(sel);
+        if (!el) return;
+        var obs = new MutationObserver(function () {
+          if (buscarYReemplazar()) { obs.disconnect(); return; }
+          var intentos = 0;
+          var poll = setInterval(function () {
+            if (buscarYReemplazar() || ++intentos >= 40) {
+              clearInterval(poll); obs.disconnect();
+            }
+          }, 200);
+        });
+        obs.observe(el, { attributes: true, attributeFilter: ['style', 'class'], childList: true, subtree: true });
+      });
+  }
+
+  // ═══════════════════════════════════════════════
+  // ROUTER
+  // ═══════════════════════════════════════════════
+  function init() {
+    var tipo = detectarTipoLandingBCP();
+    console.log('[AT VarB] Landing detectada:', tipo);
+
+    if (tipo === 'TRADICIONAL') {
+      ejecutarCodigo01();
+    } else if (tipo === 'CODIGO') {
+      ejecutarCodigo02();
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
